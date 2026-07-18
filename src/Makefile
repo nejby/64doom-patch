@@ -26,9 +26,12 @@ OPTFLAG = -O3
 # function/data sections + gc-sections saves about ~200kb from output binary
 #CFLAGS = -falign-functions=16 -ffile-prefix-map=$(CURDIR)= -DN64 -fdiagnostics-color=always -Wno-error=switch -Wall -g -mabi=o64 -mno-shared -mno-abicalls -mno-branch-likely -mno-llsc -mno-check-zero-division -mfix4300 -std=gnu99 -march=vr4300 -mtune=vr4300 -mips3 -G4 $(OPTFLAG) -I$(ROOTDIR)/mips64-elf/include -DRANGECHECK
 #LINK_FLAGS = -G4 -g -L$(ROOTDIR)/mips64-elf/lib $(LIBS) -Tn64.ld
-CFLAGS = -ffunction-sections -fdata-sections -falign-functions=32 -ffile-prefix-map=$(CURDIR)= -DN64 -fdiagnostics-color=always -Wno-error=switch -Wall -g -mabi=o64 -mno-shared -mno-abicalls -mno-branch-likely -mno-llsc -mno-check-zero-division -mfix4300 -std=gnu99 -march=vr4300 -mtune=vr4300 -mips3 -G4 $(OPTFLAG) -I$(ROOTDIR)/mips64-elf/include
+CFLAGS = -falign-functions=32 -ffile-prefix-map=$(CURDIR)= -DN64 -fdiagnostics-color=always -Wno-error=switch -Wall -g -mabi=o64 -mno-shared -mno-abicalls -mno-branch-likely -mno-llsc -mno-check-zero-division -mfix4300 -std=gnu99 -march=vr4300 -mtune=vr4300 -mips3 -G4 $(OPTFLAG) -I$(ROOTDIR)/mips64-elf/include
 # -DRANGECHECK
-LINK_FLAGS = --gc-sections -G4 -g -L$(ROOTDIR)/mips64-elf/lib $(LIBS) -Tn64.ld
+LINK_FLAGS = -G4 -g -L$(ROOTDIR)/mips64-elf/lib $(LIBS) \
+             -Wl,--gc-sections \
+             -Wl,--wrap=__do_global_ctors \
+             -Wl,-Tn64.ld
 
 CC = $(GCCN64PREFIX)gcc
 AS = $(GCCN64PREFIX)as
@@ -108,21 +111,29 @@ OBJS=						\
 		$(O)/i_main.o
 
 $(PROG_NAME).z64: $(PROG_NAME).elf
-	$(OBJCOPY) $(PROG_NAME).elf $(PROG_NAME).bin -O binary
-	$(N64_SYM) $(PROG_NAME).elf $(PROG_NAME).sym
-	$(N64_DSOMSYM) $(PROG_NAME).elf $(PROG_NAME).msym
 	rm -f $(PROG_NAME).z64
 	rm -f rom.dfs
+	rm -f filesystem/*.WAD
+
+	$(N64_SYM) $(PROG_NAME).elf $(PROG_NAME).sym
+	$(N64_DSOMSYM) $(PROG_NAME).elf $(PROG_NAME).msym
+
 	cp $(IWAD_DIRECTORY)/$(IWAD_PREFIX).WAD filesystem
 	echo $(IWAD_PREFIX).WAD > filesystem/identifier
+
 	$(MKDFSPATH) rom.dfs ./filesystem/
 	$(N64TOOL) \
-        --header $(HEADERPATH)/$(HEADERNAME) --title $(PROG_NAME) --toc --output $(PROG_NAME).z64 $(PROG_NAME).bin --align 8 $(PROG_NAME).sym --align 8 $(PROG_NAME).msym --align 16 rom.dfs
-	chmod ugo=rw $(PROG_NAME).z64
-	$(CHKSUM64PATH) $(PROG_NAME).z64
+    --title $(PROG_NAME) \
+    --toc \
+    --output $(PROG_NAME).z64 \
+    --align 256 \
+    $(PROG_NAME).elf \
+    --align 256 \
+    rom.dfs
+	#$(CHKSUM64PATH) $(PROG_NAME).z64
 
 $(PROG_NAME).elf : $(OBJS)
-	$(LD) -o $(PROG_NAME).elf $(OBJS) $(LINK_FLAGS)
+	$(CC) -o $(PROG_NAME).elf $(OBJS) $(LINK_FLAGS)
 
 copy: $(PROG_NAME).z64
 	cp $(PROG_NAME).z64 ~/

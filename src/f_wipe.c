@@ -20,6 +20,8 @@
 
 #include "z_zone.h"
 #include "i_video.h"
+#include "i_system.h"
+#include <stdio.h>
 #include "v_video.h"
 #include "m_random.h"
 
@@ -34,12 +36,11 @@
 // when zero, stop the wipe
 static boolean      go = 0;
 
-static uint16_t*    wipe_scr_start;
-static uint16_t*    wipe_scr_end;
-static uint16_t*    wipe_scr;
+static void* wipe_scr_start;
+static void* wipe_scr_end;
+static void* wipe_scr;
 
-// wipe_scr gets pointed to actual screen
-extern uint16_t*    bufptr;
+extern void* bufptr;
 
 
 void wipe_shittyColMajorXform(uint32_t* array, int width, int height )
@@ -131,7 +132,17 @@ int wipe_exitColorXForm(int width, int height, int ticks)
 static int*    y;
 
 int wipe_initMelt(int width, int height, int ticks)
-{
+{   
+
+    if (!wipe_scr_start)
+        I_Error("wipe_scr_start NULL");
+
+    if (!wipe_scr_end)
+        I_Error("wipe_scr_end NULL");
+
+    if (!wipe_scr)
+        I_Error("wipe_scr NULL");
+
     int i, r;
 
     // copy start screen to main screen
@@ -241,7 +252,13 @@ int wipe_exitMelt(int width, int height, int ticks)
 
 int wipe_StartScreen(int x, int y, int width, int height)
 {
-    wipe_scr_start = Z_Malloc(SCREENWIDTH * SCREENHEIGHT * sizeof(*wipe_scr_start), PU_STATIC, NULL);
+    printf("wipe_StartScreen\n");
+
+    wipe_scr_start = Z_Malloc(SCREENWIDTH * SCREENHEIGHT, PU_STATIC, NULL);
+
+    if (!wipe_scr_start)
+        I_Error("wipe_StartScreen alloc failed");
+
     I_ReadScreen(wipe_scr_start);
     return 0;
 }
@@ -249,7 +266,12 @@ int wipe_StartScreen(int x, int y, int width, int height)
 
 int wipe_EndScreen(int x, int y, int width, int height)
 {
-    wipe_scr_end = Z_Malloc(SCREENWIDTH * SCREENHEIGHT * sizeof(*wipe_scr_end), PU_STATIC, NULL);
+    printf("wipe_EndScreen\n");
+
+    if (!wipe_scr_start)
+        I_Error("wipe_EndScreen: wipe_scr_start NULL");
+
+    wipe_scr_end = Z_Malloc(SCREENWIDTH * SCREENHEIGHT,PU_STATIC,NULL);
     I_ReadScreen(wipe_scr_end);
     V_DrawBlock(x, y, width, height, wipe_scr_start); // restore start scr.
     return 0;
@@ -258,13 +280,17 @@ int wipe_EndScreen(int x, int y, int width, int height)
 
 int wipe_ScreenWipe(int wipeno, int x, int y, int width, int height, int ticks)
 {
+    printf("wipe_ScreenWipe go=%d\n", go);
     int rc;
     static int (*wipes[])(int, int, int) =
     {
         wipe_initColorXForm, wipe_doColorXForm, wipe_exitColorXForm,
         wipe_initMelt, wipe_doMelt, wipe_exitMelt
     };
-
+    if (!bufptr)
+    {
+        I_Error("wipe: bufptr is NULL");
+    }
     // initial stuff
     if (!go)
     {

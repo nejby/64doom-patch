@@ -236,15 +236,15 @@ void D_Display(void)
     }
 
     // save the current screen if about to wipe
-//    if (gamestate != wipegamestate)
-//    {
-//        wipe = true;
-//        wipe_StartScreen(0, 0, SCREENWIDTH, SCREENHEIGHT); 
-//    }
-//    else
-//    {
+    if (gamestate != wipegamestate)
+    {
+        wipe = true;
+        wipe_StartScreen(0, 0, SCREENWIDTH, SCREENHEIGHT); 
+    }
+    else
+    {
         wipe = false;
-//    }
+    }
 
     if ((gamestate == GS_LEVEL) && gametic)
     {
@@ -363,11 +363,11 @@ void D_Display(void)
 
     NetUpdate(); // send out any new accumulation
 
-//    if (!wipe)
-//    {
+    if (!wipe)
+    {
     I_FinishUpdate();
-//        return;
-//    }
+        return;
+    }
 
 #if 0
     // wipe update
@@ -377,22 +377,18 @@ void D_Display(void)
 
     do
     {
-        do
-        {
-            nowtime = I_GetTime ();
-            tics = nowtime - wipestart;
-        }
-        while (!tics);
+        done = wipe_ScreenWipe(
+            wipe_Melt,
+            0,
+            0,
+            SCREENWIDTH,
+            SCREENHEIGHT,
+            1
+    );
 
-        wipestart = nowtime;
-        done = wipe_ScreenWipe(wipe_Melt, 0, 0, SCREENWIDTH, SCREENHEIGHT, tics);
-
-        M_Drawer ();    // menu is drawn even on top of wipes
-
-        I_FinishUpdate();
-        I_StartFrame();
-    }
-    while (!done);    
+    I_FinishUpdate();
+}
+while (!done);    
 
     I_FinishUpdate();
 #endif

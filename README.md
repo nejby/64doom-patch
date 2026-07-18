@@ -3,7 +3,13 @@
 ---------------
 
 
-Updated 2023/05/21
+Updated 2026/07/18
+
+This is a fork of 64Doom that fixes issues with compiling it on newest version of unstable LibDragon
+Function for switching weapons has been rewritten so instead of going through all empty weapons, it brings up weapons that you only have.
+Controls has been slightly changed, Z is now Shooting and A is for holding to run.
+Melting Screen is unused and broken, that code is gonna be rewritten.
+Tested only on SummerCart 64.
 
 
 -------------------------
@@ -109,9 +115,9 @@ C UP :: toggle auto-map
 
 C DOWN :: ENTER key
 
-Z :: toggle run on/off (defaults to on)
+A :: hold to run
 
-A :: shoot
+Z :: shoot
 
 B :: use (open doors, flip switches)
 
